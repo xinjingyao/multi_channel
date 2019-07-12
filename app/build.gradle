@@ -8,13 +8,76 @@ android {
         targetSdkVersion 28
         versionCode VERSION_CODE as int
         versionName VERSION_NAME
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        // 通过buildConfigField自定义配置信息
+        buildConfigField("String", "BASE_API", "${BASE_API}")
+//        buildConfigField("String", "CHANNEL", "${CHANNEL}")
+        buildConfigField("boolean", "LOG_SWITCH", "${LOG_SWITCH}")
+
+//        // 在清单文件中需要引用的参数
+//        manifestPlaceholders = [
+//                APP_NAME: APP_NAME,
+//                CHANNEL : CHANNEL]
+
+        flavorDimensions "versionName" // 为了让多渠道包间的纬度统一
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+    //签名配置
+    signingConfigs {
+        debug { // debug签名配置
+            storeFile file(STORE_FILE)//密钥文件路径
+            storePassword STORE_PASSWORD//密钥文件密码
+            keyAlias KEY_ALIAS//key别名
+            keyPassword KEY_PASSWORD//key密码
         }
+        release {//发布版签名配置
+            storeFile file(STORE_FILE)//密钥文件路径
+            storePassword STORE_PASSWORD//密钥文件密码
+            keyAlias KEY_ALIAS//key别名
+            keyPassword KEY_PASSWORD//key密码
+        }
+    }
+
+    // 构建配置
+    buildTypes {
+        debug {
+            minifyEnabled false
+            zipAlignEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.debug
+        }
+        release {
+            minifyEnabled true  // 混淆开启
+            zipAlignEnabled true // 压缩开启
+            shrinkResources true // 移除无用资源
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release//设置签名信息
+        }
+    }
+
+    // 多渠道打包配置名称
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def buildName = "multi-channel"
+            def type = variant.buildType.name
+            def releaseApkName
+            releaseApkName = buildName + '_' + productFlavors.name + '_' + type + "_" + "${defaultConfig.versionName}" + '.apk'
+            outputFileName = releaseApkName
+        }
+    }
+
+    // 渠道配置
+    productFlavors {
+        xiaomi {}
+        huawei {}
+        _360 {}
+        wandoujia {}
+    }
+
+    productFlavors.all { flavor ->
+        flavor.manifestPlaceholders = [
+                APP_NAME: APP_NAME,
+                CHANNEL : name]
     }
 }
 
